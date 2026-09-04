@@ -1,0 +1,6 @@
+{
+  "name": "Pharmacies CI",
+  "description": "Trouvez rapidement les pharmacies de garde en Côte d'Ivoire, urgences médicales 118 et abonnement alertes 1000F.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

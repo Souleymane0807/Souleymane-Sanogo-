@@ -30,13 +30,15 @@ interface InstallAndRegisterModalProps {
   onClose: () => void;
   subscription: UserSubscription | null;
   onSaveSubscription: (sub: UserSubscription) => void;
+  onOpenVipFeatures?: () => void;
 }
 
 export const InstallAndRegisterModal: React.FC<InstallAndRegisterModalProps> = ({
   isOpen,
   onClose,
   subscription,
-  onSaveSubscription
+  onSaveSubscription,
+  onOpenVipFeatures
 }) => {
   const { isInstallable, isInstalled, isIOS, install } = usePWAInstall();
   
@@ -766,6 +768,21 @@ export const InstallAndRegisterModal: React.FC<InstallAndRegisterModalProps> = (
                   <span>Imprimer le Pass</span>
                 </button>
               </div>
+
+              {onOpenVipFeatures && (
+                <button
+                  id="btn-open-vip-from-install"
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    onOpenVipFeatures();
+                  }}
+                  className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-gradient-to-r from-[#145A32] to-[#1F7A4D] hover:brightness-110 text-white text-xs font-black shadow-md transition active:scale-98"
+                >
+                  <Sparkles className="h-4 w-4 fill-current text-amber-300" />
+                  <span>Accéder aux fonctionnalités après paiement</span>
+                </button>
+              )}
 
               <button
                 id="btn-finish-modal"

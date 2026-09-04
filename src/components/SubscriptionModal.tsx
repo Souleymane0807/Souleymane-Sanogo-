@@ -28,6 +28,7 @@ interface SubscriptionModalProps {
   subscription: UserSubscription | null;
   onSaveSubscription: (sub: UserSubscription) => void;
   onCancelSubscription: () => void;
+  onOpenVipFeatures?: () => void;
 }
 
 export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
@@ -35,7 +36,8 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
   onClose,
   subscription,
   onSaveSubscription,
-  onCancelSubscription
+  onCancelSubscription,
+  onOpenVipFeatures
 }) => {
   const [step, setStep] = useState<'details' | 'payment' | 'success'>(subscription ? 'success' : 'details');
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
@@ -364,6 +366,21 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
                 </button>
               </div>
 
+              {onOpenVipFeatures && (
+                <button
+                  id="btn-open-vip-from-sub"
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    onOpenVipFeatures();
+                  }}
+                  className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-gradient-to-r from-[#145A32] to-[#1F7A4D] hover:brightness-110 text-white text-xs font-black shadow-md transition active:scale-98"
+                >
+                  <Sparkles className="h-4 w-4 fill-current text-amber-300" />
+                  <span>Accéder aux fonctionnalités après paiement (Pass VIP)</span>
+                </button>
+              )}
+
               <div className="pt-2 text-center">
                 <button
                   id="btn-cancel-subscription"
@@ -430,11 +447,15 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
               <div className="space-y-2 text-xs text-slate-700 bg-slate-50 p-3.5 rounded-2xl border border-slate-200/70">
                 <div className="flex items-start gap-2">
                   <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <span><strong>Appels direct, WhatsApp & Itinéraire GPS débloqués :</strong> Contactez instantanément l'officine de garde et lancez la navigation.</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
                   <span><strong>Alertes WhatsApp & SMS chaque vendredi soir :</strong> Adresses et numéros de garde dans votre quartier.</span>
                 </div>
                 <div className="flex items-start gap-2">
                   <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
-                  <span><strong>Recherche médicaments rares 24h/24 :</strong> Sérums antivenimeux, insulines, perfusions.</span>
+                  <span><strong>Recherche médicaments rares 24h/24 :</strong> Sérums antivenimeux, insulines, perfusions d'urgence.</span>
                 </div>
                 <div className="flex items-start gap-2">
                   <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />

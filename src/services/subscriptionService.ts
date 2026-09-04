@@ -108,6 +108,53 @@ export function saveAppConfirmation(code: string, role: 'admin' | 'subscriber'):
 }
 
 /**
+ * Ensures an active UserSubscription object exists for confirmed users
+ */
+export function ensureActiveSubscription(code: string = 'GARAL2026', userName: string = '', phone: string = ''): UserSubscription {
+  try {
+    const existing = localStorage.getItem('pharmacies_ci_subscription');
+    if (existing) {
+      const parsed = JSON.parse(existing);
+      if (parsed && parsed.status === 'active') {
+        return parsed;
+      }
+    }
+  } catch {
+    // fallback
+  }
+
+  const now = new Date();
+  const expires = new Date();
+  expires.setMonth(expires.getMonth() + 1);
+  const randomMemberNum = Math.floor(1000 + Math.random() * 9000);
+
+  const newSub: UserSubscription = {
+    id: 'sub-' + Date.now(),
+    memberId: `PCI-225-${randomMemberNum}`,
+    userName: userName.trim() || 'Adhérent Pass VIP CI',
+    phone: phone.trim() || '+225',
+    commune: 'Cocody',
+    planName: 'Abonnement VIP 1000F',
+    priceCFA: 1000,
+    paymentMethod: 'wave',
+    status: 'active',
+    activatedAt: now.toLocaleDateString('fr-FR'),
+    expiresAt: expires.toLocaleDateString('fr-FR'),
+    receiveSMSAlerts: true,
+    receiveWhatsAppAlerts: true,
+    digitalPassQr: `PHARMACIES-CI-VIP-${code || 'GARAL2026'}`
+  };
+
+  try {
+    localStorage.setItem('pharmacies_ci_subscription', JSON.stringify(newSub));
+  } catch {
+    // ignore
+  }
+
+  return newSub;
+}
+
+/**
  * Revokes confirmation
  */
 export function clearAppConfirmation(): void {

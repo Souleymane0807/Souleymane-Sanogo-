@@ -7,6 +7,7 @@ interface NavbarProps {
   onOpenEmergency: () => void;
   onOpenSubscription: () => void;
   onOpenInstallRegister: () => void;
+  onOpenVipFeatures: () => void;
   favoritesCount: number;
   onOpenFavorites: () => void;
   currentCoords: Coords;
@@ -21,6 +22,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenEmergency,
   onOpenSubscription,
   onOpenInstallRegister,
+  onOpenVipFeatures,
   favoritesCount,
   onOpenFavorites,
   currentCoords,
@@ -99,20 +101,20 @@ export const Navbar: React.FC<NavbarProps> = ({
             )}
           </button>
 
-          {/* Abonnement 1000F Badge/Button */}
+          {/* VIP Features / Après Paiement Button */}
           <button
-            id="nav-subscription-btn"
-            onClick={onOpenSubscription}
+            id="nav-btn-vip-features"
+            onClick={onOpenVipFeatures}
             className={`hidden sm:flex items-center gap-1.5 rounded-xl px-2.5 sm:px-3 py-1.5 text-xs font-bold transition-all shadow-xs ${
-              hasActiveSubscription
-                ? 'bg-amber-100 text-amber-900 border border-amber-300 hover:bg-amber-200'
+              hasActiveSubscription || isConfirmed
+                ? 'bg-emerald-100 text-emerald-950 border border-emerald-300 hover:bg-emerald-200'
                 : 'bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:brightness-105 active:scale-95 shadow-orange-500/20'
             }`}
-            title="Abonnement 1 000 FCFA - Alertes pharmacies de garde & conciergerie santé"
+            title="Accéder aux fonctionnalités après paiement (Pass VIP, Alertes WhatsApp, Conciergerie)"
           >
-            <Sparkles className="h-3.5 w-3.5 fill-current" />
-            <span className="hidden lg:inline">Abonnement</span>
-            <span>1000F</span>
+            <Sparkles className="h-3.5 w-3.5 fill-current text-amber-400" />
+            <span className="hidden lg:inline">{hasActiveSubscription || isConfirmed ? 'Services' : 'Fonctionnalités'}</span>
+            <span>{hasActiveSubscription || isConfirmed ? 'Pass VIP' : 'Après Paiement'}</span>
           </button>
 
           {/* URGENCES 118 Button - High Priority */}

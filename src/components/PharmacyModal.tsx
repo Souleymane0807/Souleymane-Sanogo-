@@ -1,7 +1,8 @@
 import React from 'react';
 import { Pharmacy } from '../types';
-import { X, Phone, MessageCircle, Navigation, MapPin, Clock, ShieldCheck, CheckCircle2, Share2, Pill, AlertCircle } from 'lucide-react';
+import { X, Phone, MessageCircle, Navigation, MapPin, Clock, ShieldCheck, CheckCircle2, Share2, Pill, AlertCircle, Lock, Sparkles } from 'lucide-react';
 import { calculateDistanceKm, formatDistance, Coords } from '../hooks/useGeolocation';
+import { VipActionTarget } from './PharmacyCard';
 
 interface PharmacyModalProps {
   pharmacy: Pharmacy | null;
@@ -9,6 +10,8 @@ interface PharmacyModalProps {
   onClose: () => void;
   onToggleFavorite: (id: string) => void;
   isFavorite: boolean;
+  hasSubscription: boolean;
+  onRequireSubscription: (target: VipActionTarget) => void;
 }
 
 export const PharmacyModal: React.FC<PharmacyModalProps> = ({
@@ -16,7 +19,9 @@ export const PharmacyModal: React.FC<PharmacyModalProps> = ({
   userCoords,
   onClose,
   onToggleFavorite,
-  isFavorite
+  isFavorite,
+  hasSubscription,
+  onRequireSubscription
 }) => {
   if (!pharmacy) return null;
 
@@ -99,6 +104,40 @@ export const PharmacyModal: React.FC<PharmacyModalProps> = ({
 
           {/* Body Content */}
           <div className="py-4 space-y-4 text-sm text-slate-700">
+            {/* VIP Status Alert */}
+            {!hasSubscription ? (
+              <div className="rounded-2xl bg-gradient-to-r from-amber-50 via-orange-50 to-amber-100 border border-amber-300 p-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-amber-950">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-500 text-white shadow-xs font-black">
+                    <Lock className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <span className="font-extrabold text-xs sm:text-sm text-amber-950 block">
+                      Appels directs, WhatsApp & Itinéraire verrouillés
+                    </span>
+                    <p className="text-[11px] text-amber-800">
+                      Toutes les informations sont consultables, mais les actions directes sont réservées après l'abonnement (1 000 F).
+                    </p>
+                  </div>
+                </div>
+                <button
+                  id="btn-unlock-from-modal"
+                  onClick={() => onRequireSubscription({ feature: 'general', pharmacyName: pharmacy.name })}
+                  className="w-full sm:w-auto px-4 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-black text-xs shrink-0 shadow-xs active:scale-95 transition flex items-center justify-center gap-1.5"
+                >
+                  <Sparkles className="h-3.5 w-3.5 fill-current text-amber-200" />
+                  <span>Débloquer (1 000 F)</span>
+                </button>
+              </div>
+            ) : (
+              <div className="rounded-2xl bg-emerald-50 border border-emerald-200 p-3 flex items-center gap-2.5 text-xs text-emerald-950">
+                <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0" />
+                <span className="font-bold">
+                  Pass VIP Actif • Appels, WhatsApp & Navigation GPS 100% Débloqués.
+                </span>
+              </div>
+            )}
+
             {/* Address & Visual Landmark */}
             <div className="rounded-2xl bg-slate-50 p-4 border border-slate-200/70">
               <div className="flex items-start gap-2.5">
@@ -143,26 +182,59 @@ export const PharmacyModal: React.FC<PharmacyModalProps> = ({
               </h4>
               <div className="flex flex-wrap gap-2">
                 {pharmacy.phones.map((phone, idx) => (
-                  <a
-                    key={idx}
-                    href={`tel:${phone.replace(/\s+/g, '')}`}
-                    className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-50 text-[#1F7A4D] font-bold text-xs hover:bg-emerald-100 transition border border-emerald-200"
-                  >
-                    <Phone className="h-3.5 w-3.5" />
-                    <span>{phone}</span>
-                  </a>
+                  hasSubscription ? (
+                    <a
+                      key={idx}
+                      href={`tel:${phone.replace(/\s+/g, '')}`}
+                      className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-50 text-[#1F7A4D] font-bold text-xs hover:bg-emerald-100 transition border border-emerald-200"
+                    >
+                      <Phone className="h-3.5 w-3.5" />
+                      <span>{phone}</span>
+                    </a>
+                  ) : (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => onRequireSubscription({
+                        feature: 'call',
+                        pharmacyName: pharmacy.name,
+                        phone
+                      })}
+                      className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-100 text-slate-800 hover:bg-amber-50 hover:text-amber-950 font-bold text-xs transition border border-slate-200"
+                      title="Activer l'abonnement pour appeler"
+                    >
+                      <Lock className="h-3.5 w-3.5 text-amber-600" />
+                      <span>{phone} (Abonnés)</span>
+                    </button>
+                  )
                 ))}
 
                 {pharmacy.whatsapp && (
-                  <a
-                    href={`https://wa.me/${pharmacy.whatsapp.replace(/\D/g, '')}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-50 text-[#25D366] font-bold text-xs hover:bg-emerald-100 transition border border-emerald-200"
-                  >
-                    <MessageCircle className="h-3.5 w-3.5" />
-                    <span>WhatsApp : {pharmacy.whatsapp}</span>
-                  </a>
+                  hasSubscription ? (
+                    <a
+                      href={`https://wa.me/${pharmacy.whatsapp.replace(/\D/g, '')}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-50 text-[#25D366] font-bold text-xs hover:bg-emerald-100 transition border border-emerald-200"
+                    >
+                      <MessageCircle className="h-3.5 w-3.5" />
+                      <span>WhatsApp : {pharmacy.whatsapp}</span>
+                    </a>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => onRequireSubscription({
+                        feature: 'whatsapp',
+                        pharmacyName: pharmacy.name,
+                        whatsapp: pharmacy.whatsapp
+                      })}
+                      className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-50 text-emerald-950 hover:bg-emerald-100 font-bold text-xs transition border border-emerald-200"
+                      title="Activer l'abonnement pour discuter sur WhatsApp"
+                    >
+                      <Lock className="h-3.5 w-3.5 text-emerald-600" />
+                      <span>WhatsApp : {pharmacy.whatsapp} (Abonnés)</span>
+                    </button>
+                  )
                 )}
               </div>
             </div>
@@ -212,24 +284,58 @@ export const PharmacyModal: React.FC<PharmacyModalProps> = ({
 
         {/* Modal Bottom Fixed Actions */}
         <div className="pt-4 border-t border-slate-100 grid grid-cols-2 sm:grid-cols-3 gap-2">
-          <a
-            href={`tel:${pharmacy.phones[0].replace(/\s+/g, '')}`}
-            className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-[#1F7A4D] hover:bg-[#145A32] text-white text-sm font-bold shadow-md shadow-emerald-900/15 active:scale-95 transition"
-          >
-            <Phone className="h-4 w-4" />
-            <span>Appeler</span>
-          </a>
+          {hasSubscription ? (
+            <a
+              href={`tel:${pharmacy.phones[0].replace(/\s+/g, '')}`}
+              className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-[#1F7A4D] hover:bg-[#145A32] text-white text-sm font-bold shadow-md shadow-emerald-900/15 active:scale-95 transition"
+            >
+              <Phone className="h-4 w-4" />
+              <span>Appeler</span>
+            </a>
+          ) : (
+            <button
+              id="btn-modal-call-locked"
+              type="button"
+              onClick={() => onRequireSubscription({
+                feature: 'call',
+                pharmacyName: pharmacy.name,
+                phone: pharmacy.phones[0]
+              })}
+              className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-sm font-bold shadow-md active:scale-95 transition"
+              title="Abonnement requis pour appeler"
+            >
+              <Lock className="h-4 w-4 text-amber-400" />
+              <span>Appeler (Abonnés)</span>
+            </button>
+          )}
 
           {pharmacy.whatsapp ? (
-            <a
-              href={`https://wa.me/${pharmacy.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(`Bonjour ${pharmacy.name}, avez-vous le médicament suivant en stock ?`)}`}
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-[#25D366] hover:bg-[#20ba59] text-white text-sm font-bold shadow-md shadow-emerald-900/10 active:scale-95 transition"
-            >
-              <MessageCircle className="h-4 w-4" />
-              <span>WhatsApp</span>
-            </a>
+            hasSubscription ? (
+              <a
+                href={`https://wa.me/${pharmacy.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(`Bonjour ${pharmacy.name}, avez-vous le médicament suivant en stock ?`)}`}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-[#25D366] hover:bg-[#20ba59] text-white text-sm font-bold shadow-md shadow-emerald-900/10 active:scale-95 transition"
+              >
+                <MessageCircle className="h-4 w-4" />
+                <span>WhatsApp</span>
+              </a>
+            ) : (
+              <button
+                id="btn-modal-wa-locked"
+                type="button"
+                onClick={() => onRequireSubscription({
+                  feature: 'whatsapp',
+                  pharmacyName: pharmacy.name,
+                  whatsapp: pharmacy.whatsapp
+                })}
+                className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-emerald-900 hover:bg-emerald-950 text-white text-sm font-bold shadow-md active:scale-95 transition"
+                title="Abonnement requis pour WhatsApp"
+              >
+                <Lock className="h-4 w-4 text-emerald-300" />
+                <span>WhatsApp (Abonnés)</span>
+              </button>
+            )
           ) : (
             <button
               onClick={() => onToggleFavorite(pharmacy.id)}
@@ -239,15 +345,33 @@ export const PharmacyModal: React.FC<PharmacyModalProps> = ({
             </button>
           )}
 
-          <a
-            href={`https://www.google.com/maps/dir/?api=1&destination=${pharmacy.lat},${pharmacy.lng}`}
-            target="_blank"
-            rel="noreferrer"
-            className="col-span-2 sm:col-span-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-800 text-sm font-bold shadow-xs active:scale-95 transition"
-          >
-            <Navigation className="h-4 w-4 text-[#1F7A4D]" />
-            <span>Itinéraire GPS</span>
-          </a>
+          {hasSubscription ? (
+            <a
+              href={`https://www.google.com/maps/dir/?api=1&destination=${pharmacy.lat},${pharmacy.lng}`}
+              target="_blank"
+              rel="noreferrer"
+              className="col-span-2 sm:col-span-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-800 text-sm font-bold shadow-xs active:scale-95 transition"
+            >
+              <Navigation className="h-4 w-4 text-[#1F7A4D]" />
+              <span>Itinéraire GPS</span>
+            </a>
+          ) : (
+            <button
+              id="btn-modal-gps-locked"
+              type="button"
+              onClick={() => onRequireSubscription({
+                feature: 'itinerary',
+                pharmacyName: pharmacy.name,
+                lat: pharmacy.lat,
+                lng: pharmacy.lng
+              })}
+              className="col-span-2 sm:col-span-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-950 text-sm font-bold shadow-xs active:scale-95 transition"
+              title="Abonnement requis pour le GPS"
+            >
+              <Lock className="h-4 w-4 text-amber-700" />
+              <span>Itinéraire (Abonnés)</span>
+            </button>
+          )}
         </div>
       </div>
     </div>

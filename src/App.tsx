@@ -10,6 +10,8 @@ import { LocationPickerModal } from './components/LocationPickerModal';
 import { InstallAndRegisterModal } from './components/InstallAndRegisterModal';
 import { AdminModal } from './components/AdminModal';
 import { AppConfirmationGateModal } from './components/AppConfirmationGateModal';
+import { VipFeaturesModal } from './components/VipFeaturesModal';
+import { VipActionRequiredModal, VipActionPrompt } from './components/VipActionRequiredModal';
 import { BottomNav } from './components/BottomNav';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { useGeolocation, calculateDistanceKm } from './hooks/useGeolocation';
@@ -17,7 +19,8 @@ import {
   getStoredAppConfirmation,
   isAppLockEnforced,
   AdminConfirmationState,
-  PAYMENT_CONFIG
+  PAYMENT_CONFIG,
+  ensureActiveSubscription
 } from './services/subscriptionService';
 import { 
   Search, 
@@ -86,14 +89,31 @@ export default function App() {
   const [isInstallRegisterOpen, setIsInstallRegisterOpen] = useState(false);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [isGateOpen, setIsGateOpen] = useState(false);
+  const [isVipFeaturesOpen, setIsVipFeaturesOpen] = useState(false);
+  const [isVipActionModalOpen, setIsVipActionModalOpen] = useState(false);
+  const [vipActionPrompt, setVipActionPrompt] = useState<VipActionPrompt | null>(null);
 
   // App Confirmation state
   const [appConfirmation, setAppConfirmation] = useState<AdminConfirmationState>(() => getStoredAppConfirmation());
+
+  // Subscription state with localStorage
+  const [subscription, setSubscription] = useState<UserSubscription | null>(() => {
+    try {
+      const saved = localStorage.getItem('pharmacies_ci_subscription');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
 
   // Load confirmation state on mount without blocking initial viewing
   useEffect(() => {
     const conf = getStoredAppConfirmation();
     setAppConfirmation(conf);
+    if (conf.isConfirmed && !subscription) {
+      const sub = ensureActiveSubscription(conf.code || 'GARAL2026');
+      setSubscription(sub);
+    }
   }, []);
 
   // Favorites state with localStorage
@@ -103,16 +123,6 @@ export default function App() {
       return saved ? JSON.parse(saved) : [];
     } catch {
       return [];
-    }
-  });
-
-  // Subscription state with localStorage
-  const [subscription, setSubscription] = useState<UserSubscription | null>(() => {
-    try {
-      const saved = localStorage.getItem('pharmacies_ci_subscription');
-      return saved ? JSON.parse(saved) : null;
-    } catch {
-      return null;
     }
   });
 
@@ -146,6 +156,13 @@ export default function App() {
     } catch {
       // Safe fallback
     }
+  };
+
+  const hasActiveSubscription = !!subscription || appConfirmation.isConfirmed;
+
+  const handleRequireSubscription = (target: VipActionPrompt) => {
+    setVipActionPrompt(target);
+    setIsVipActionModalOpen(true);
   };
 
   // Sync tab with duty filter
@@ -215,6 +232,7 @@ export default function App() {
         onOpenEmergency={() => setIsEmergencyOpen(true)}
         onOpenSubscription={() => setIsSubscriptionOpen(true)}
         onOpenInstallRegister={() => setIsInstallRegisterOpen(true)}
+        onOpenVipFeatures={() => setIsVipFeaturesOpen(true)}
         favoritesCount={favorites.length}
         onOpenFavorites={() => setActiveTab('favorites')}
         currentCoords={currentCoords}
@@ -245,10 +263,18 @@ export default function App() {
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto shrink-0">
+              <button
+                onClick={() => setIsVipFeaturesOpen(true)}
+                className="w-full sm:w-auto px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-black text-xs shadow-xs transition active:scale-95 flex items-center justify-center gap-1.5"
+                title="Découvrir et débloquer les fonctionnalités après paiement"
+              >
+                <Sparkles className="h-3.5 w-3.5 fill-current" />
+                <span>Accéder aux fonctionnalités après paiement</span>
+              </button>
               <button
                 onClick={() => setIsSubscriptionOpen(true)}
-                className="w-full sm:w-auto px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-xs transition active:scale-95"
+                className="w-full sm:w-auto px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-xs transition active:scale-95"
               >
                 S'abonner (1 000 F)
               </button>
@@ -263,24 +289,31 @@ export default function App() {
             </div>
           </div>
         ) : (
-          <div className="mb-3 rounded-xl bg-emerald-50 border border-emerald-200 px-3.5 py-2 flex items-center justify-between text-xs text-emerald-950 shadow-2xs">
-            <div className="flex items-center gap-2">
-              <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0" />
-              <span>
-                Pass VIP Actif • Validé par <strong>Max adiko Clovis Garal</strong> ({appConfirmation.code || subscription?.memberId || 'AUTORISÉ'})
-              </span>
+          <div className="mb-3 rounded-2xl bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-100 border border-emerald-300 p-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-emerald-950 shadow-xs">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white font-black shadow-xs">
+                <ShieldCheck className="h-5 w-5" />
+              </div>
+              <div>
+                <span className="font-extrabold text-sm text-emerald-950 block">
+                  Pass VIP Actif • Validé par <strong>Max adiko Clovis Garal</strong> ({appConfirmation.code || subscription?.memberId || 'AUTORISÉ'})
+                </span>
+                <p className="text-[11px] text-emerald-800">
+                  Toutes vos fonctionnalités exclusives sont débloquées (Pass numérique, Alertes, PDF, Conciergerie SOS).
+                </p>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
               <button
-                onClick={() => setIsSubscriptionOpen(true)}
-                className="text-[11px] font-bold text-emerald-800 hover:text-emerald-950 underline"
+                onClick={() => setIsVipFeaturesOpen(true)}
+                className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-black text-xs shadow-sm active:scale-95 transition"
               >
-                Voir mon Pass VIP
+                <Sparkles className="h-3.5 w-3.5 fill-current text-amber-300" />
+                <span>Accéder aux fonctionnalités après paiement</span>
               </button>
-              <span className="text-slate-300">•</span>
               <button
                 onClick={() => setIsAdminOpen(true)}
-                className="text-[11px] font-bold text-slate-600 hover:text-slate-900"
+                className="px-2.5 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 font-bold text-xs transition"
               >
                 Admin
               </button>
@@ -545,8 +578,10 @@ export default function App() {
                 pharmacy={pharmacy}
                 userCoords={currentCoords}
                 isFavorite={favorites.includes(pharmacy.id)}
+                hasSubscription={hasActiveSubscription}
                 onToggleFavorite={handleToggleFavorite}
                 onSelectPharmacy={setSelectedPharmacy}
+                onRequireSubscription={handleRequireSubscription}
               />
             ))}
           </div>
@@ -627,6 +662,22 @@ export default function App() {
         onClose={() => setSelectedPharmacy(null)}
         onToggleFavorite={handleToggleFavorite}
         isFavorite={selectedPharmacy ? favorites.includes(selectedPharmacy.id) : false}
+        hasSubscription={hasActiveSubscription}
+        onRequireSubscription={handleRequireSubscription}
+      />
+
+      <VipActionRequiredModal
+        isOpen={isVipActionModalOpen}
+        onClose={() => setIsVipActionModalOpen(false)}
+        prompt={vipActionPrompt}
+        onOpenFullSubscription={() => {
+          setIsVipActionModalOpen(false);
+          setIsSubscriptionOpen(true);
+        }}
+        onSuccessSubscription={(sub) => {
+          handleSaveSubscription(sub);
+          setAppConfirmation(getStoredAppConfirmation());
+        }}
       />
 
       <Emergency118Modal
@@ -641,6 +692,7 @@ export default function App() {
         subscription={subscription}
         onSaveSubscription={handleSaveSubscription}
         onCancelSubscription={handleCancelSubscription}
+        onOpenVipFeatures={() => setIsVipFeaturesOpen(true)}
       />
 
       <LocationPickerModal
@@ -659,6 +711,7 @@ export default function App() {
         onClose={() => setIsInstallRegisterOpen(false)}
         subscription={subscription}
         onSaveSubscription={handleSaveSubscription}
+        onOpenVipFeatures={() => setIsVipFeaturesOpen(true)}
       />
 
       {/* Admin Space & Codes Management Modal */}
@@ -671,8 +724,14 @@ export default function App() {
       <AppConfirmationGateModal
         isOpen={isGateOpen}
         onSuccess={() => {
-          setAppConfirmation(getStoredAppConfirmation());
+          const conf = getStoredAppConfirmation();
+          setAppConfirmation(conf);
+          if (conf.isConfirmed) {
+            const sub = ensureActiveSubscription(conf.code || 'GARAL2026');
+            setSubscription(sub);
+          }
           setIsGateOpen(false);
+          setIsVipFeaturesOpen(true);
         }}
         onEmergencyAccess={() => {
           setIsGateOpen(false);
@@ -680,6 +739,20 @@ export default function App() {
         }}
         isDismissible={appConfirmation.isConfirmed}
         onClose={() => setIsGateOpen(false)}
+      />
+
+      {/* VIP Features Modal (Fonctionnalités après paiement) */}
+      <VipFeaturesModal
+        isOpen={isVipFeaturesOpen}
+        onClose={() => setIsVipFeaturesOpen(false)}
+        subscription={subscription}
+        isConfirmed={appConfirmation.isConfirmed}
+        onSubscriptionUpdated={(sub) => {
+          setSubscription(sub);
+          setAppConfirmation(getStoredAppConfirmation());
+        }}
+        pharmacies={IVORY_COAST_PHARMACIES}
+        onOpenWavePayment={() => window.open(PAYMENT_CONFIG.wavePayUrl, '_blank')}
       />
 
       {/* Offline PWA Indicator */}
@@ -692,9 +765,10 @@ export default function App() {
         onOpenEmergency118={() => setIsEmergencyOpen(true)}
         onOpenSubscription1000F={() => setIsSubscriptionOpen(true)}
         onOpenInstallRegister={() => setIsInstallRegisterOpen(true)}
+        onOpenVipFeatures={() => setIsVipFeaturesOpen(true)}
         favoritesCount={favorites.length}
         dutyCount={dutyPharmaciesCount}
-        hasSubscription={!!subscription}
+        hasSubscription={!!subscription || appConfirmation.isConfirmed}
       />
     </div>
   );

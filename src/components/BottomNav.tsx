@@ -7,6 +7,7 @@ interface BottomNavProps {
   onOpenEmergency118: () => void;
   onOpenSubscription1000F: () => void;
   onOpenInstallRegister: () => void;
+  onOpenVipFeatures?: () => void;
   favoritesCount: number;
   dutyCount: number;
   hasSubscription: boolean;
@@ -18,6 +19,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
   onOpenEmergency118,
   onOpenSubscription1000F,
   onOpenInstallRegister,
+  onOpenVipFeatures,
   favoritesCount,
   dutyCount,
   hasSubscription
@@ -70,10 +72,10 @@ export const BottomNav: React.FC<BottomNavProps> = ({
           <span className="text-[10px] font-black text-red-600 mt-1">118 SOS</span>
         </button>
 
-        {/* Tab: Installer & S'inscrire */}
+        {/* Tab: Installer & S'inscrire / VIP */}
         <button
           id="btn-tab-install-register"
-          onClick={onOpenInstallRegister}
+          onClick={hasSubscription && onOpenVipFeatures ? onOpenVipFeatures : onOpenInstallRegister}
           className="flex flex-col items-center justify-center py-1 rounded-xl text-emerald-800 hover:text-emerald-950 transition"
         >
           {hasSubscription ? (
@@ -82,7 +84,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
             <Download className="h-5 w-5 text-[#1F7A4D] animate-bounce" />
           )}
           <span className="text-[10px] font-bold text-emerald-900 mt-0.5">
-            {hasSubscription ? 'Mon Pass' : "S'inscrire"}
+            {hasSubscription ? 'Pass VIP' : "S'inscrire"}
           </span>
         </button>
 

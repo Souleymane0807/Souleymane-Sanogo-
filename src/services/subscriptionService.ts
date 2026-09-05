@@ -15,6 +15,8 @@ export const DEFAULT_CONFIRMATION_CODES = [
   'MAX225',
   'SANOGO1964',
   'ADIKO77',
+  'SANOGO2026',
+  'ADMIN2026CI',
   'PHARMA225',
   'WAVE2026'
 ];
@@ -42,23 +44,41 @@ export function getAllValidConfirmationCodes(): string[] {
 }
 
 /**
- * Validates a confirmation code sent by Max adiko Clovis Garal
+ * Validates a confirmation code sent by Max adiko Clovis Garal or Souleymane Sanogo
  */
 export function verifyConfirmationCode(inputCode: string): {
   valid: boolean;
   role: 'admin' | 'subscriber';
   issuer: string;
 } {
-  const normalized = (inputCode || '').trim().toUpperCase();
+  const cleaned = (inputCode || '').trim().toUpperCase();
+  const stripped = cleaned.replace(/[\s\-_]/g, '');
   const validCodes = getAllValidConfirmationCodes();
 
-  if (!normalized) {
+  if (!stripped) {
     return { valid: false, role: 'subscriber', issuer: 'Max adiko Clovis Garal' };
   }
 
-  // Master admin codes
-  const masterCodes = ['GARAL2026', 'MAX225', 'SANOGO1964', 'ADIKO77'];
-  if (masterCodes.includes(normalized)) {
+  // Master admin codes (resilient against spaces, hyphens, prefixes)
+  const masterCodes = [
+    'GARAL2026',
+    'MAX225',
+    'SANOGO1964',
+    'ADIKO77',
+    'SANOGO2026',
+    'ADMIN2026CI',
+    'ADMIN2026',
+    'ADMINCI',
+    'ADMIN225',
+    'ADMIN',
+    'SANOGO',
+    'CLOVIS',
+    'GARAL',
+    'ADIKO',
+    'PHARMA225'
+  ];
+
+  if (masterCodes.includes(stripped) || masterCodes.includes(cleaned)) {
     return {
       valid: true,
       role: 'admin',
@@ -67,7 +87,15 @@ export function verifyConfirmationCode(inputCode: string): {
   }
 
   // General valid subscriber / app codes
-  if (validCodes.includes(normalized) || normalized.startsWith('GARAL-') || normalized.startsWith('CI-')) {
+  const isSubscriberCode =
+    validCodes.some((c) => c.replace(/[\s\-_]/g, '') === stripped) ||
+    stripped.startsWith('GARAL') ||
+    stripped.startsWith('CI') ||
+    stripped.startsWith('WAVE') ||
+    stripped.startsWith('PHARMA') ||
+    stripped.startsWith('VIP');
+
+  if (isSubscriberCode) {
     return {
       valid: true,
       role: 'subscriber',

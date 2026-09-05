@@ -41,27 +41,12 @@ import {
   UserCheck,
   KeyRound,
   Shield,
-  ExternalLink
+  ExternalLink,
+  Building2,
+  Lock
 } from 'lucide-react';
-
-const ALL_COMMUNES = [
-  'Toutes les communes',
-  'Cocody',
-  'Yopougon',
-  'Plateau',
-  'Marcory',
-  'Treichville',
-  'Koumassi',
-  'Port-Bouët',
-  'Abobo',
-  'Adjamé',
-  'Bingerville',
-  'Yamoussoukro',
-  'Bouaké',
-  'San-Pédro',
-  'Korhogo',
-  'Grand-Bassam'
-];
+import { ALL_REGION_NAMES, IVORY_COAST_REGIONS, findRegionByCommune, getRegionByNameOrLabel } from './data/regionsCI';
+import { extractFuzzyLocations, matchesPharmacyFuzzy, normalizeText } from './utils/fuzzySearch';
 
 export default function App() {
   // Geolocation
@@ -75,6 +60,7 @@ export default function App() {
 
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedRegion, setSelectedRegion] = useState('Toutes les régions');
   const [selectedCommune, setSelectedCommune] = useState('Toutes les communes');
   const [onlyDuty, setOnlyDuty] = useState(false);
   const [only24h, setOnly24h] = useState(false);
@@ -172,8 +158,35 @@ export default function App() {
     }
   }, [activeTab]);
 
-  // Filtered and sorted pharmacies
+  // Communes list based on selected region
+  const availableCommunes = useMemo(() => {
+    if (selectedRegion === 'Toutes les régions') {
+      const allUniqueCommunes = Array.from(
+        new Set([
+          ...IVORY_COAST_PHARMACIES.map((p) => p.commune),
+          ...IVORY_COAST_REGIONS.flatMap((r) => r.communes)
+        ])
+      ).filter(Boolean).sort((a, b) => a.localeCompare(b, 'fr'));
+      return ['Toutes les communes', ...allUniqueCommunes];
+    }
+
+    const reg = getRegionByNameOrLabel(selectedRegion);
+    if (reg) {
+      return ['Toutes les communes', ...reg.communes];
+    }
+
+    return ['Toutes les communes'];
+  }, [selectedRegion]);
+
+  // Extract fuzzy matched locations from the user's search query (communes, regions, chef-lieux)
+  const fuzzyLocations = useMemo(() => {
+    return extractFuzzyLocations(searchQuery);
+  }, [searchQuery]);
+
+  // Filtered & Sorted Pharmacies
   const filteredPharmacies = useMemo(() => {
+    const selectedRegInfo = selectedRegion !== 'Toutes les régions' ? getRegionByNameOrLabel(selectedRegion) : undefined;
+
     return IVORY_COAST_PHARMACIES.filter((pharma) => {
       // Tab filter
       if (activeTab === 'duty' && !pharma.isOnDuty) return false;
@@ -183,24 +196,34 @@ export default function App() {
       if (onlyDuty && !pharma.isOnDuty) return false;
       if (only24h && !pharma.isOpen24h) return false;
 
-      // Commune filter
-      if (selectedCommune !== 'Toutes les communes' && pharma.commune.toLowerCase() !== selectedCommune.toLowerCase()) {
-        return false;
+      // Region filter
+      if (selectedRegInfo) {
+        const pharmaRegionNorm = normalizeText(pharma.region || '');
+        const targetRegionNorm = normalizeText(selectedRegInfo.name);
+        const targetChefLieuNorm = normalizeText(selectedRegInfo.chefLieu);
+        const pharmaCommuneNorm = normalizeText(pharma.commune);
+        const pharmaCityNorm = normalizeText(pharma.city || '');
+
+        const matchesRegion =
+          pharmaRegionNorm === targetRegionNorm ||
+          selectedRegInfo.communes.some((c) => normalizeText(c) === pharmaCommuneNorm) ||
+          pharmaCityNorm === targetChefLieuNorm ||
+          pharmaCityNorm === targetRegionNorm;
+
+        if (!matchesRegion) return false;
       }
 
-      // Search query (name, neighborhood, landmark, medications)
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase().trim();
-        const matchName = pharma.name.toLowerCase().includes(q);
-        const matchCommune = pharma.commune.toLowerCase().includes(q);
-        const matchNeighborhood = pharma.neighborhood.toLowerCase().includes(q);
-        const matchLandmark = pharma.landmark.toLowerCase().includes(q);
-        const matchMedication = pharma.availableMedications.some((m) =>
-          m.name.toLowerCase().includes(q) || m.category.toLowerCase().includes(q)
-        );
-        const matchCity = pharma.city.toLowerCase().includes(q);
+      // Commune filter
+      if (selectedCommune !== 'Toutes les communes') {
+        if (normalizeText(pharma.commune) !== normalizeText(selectedCommune)) {
+          return false;
+        }
+      }
 
-        if (!matchName && !matchCommune && !matchNeighborhood && !matchLandmark && !matchMedication && !matchCity) {
+      // Fuzzy & Multi-term Search (names, communes, regions, chef-lieux, medications, landmarks, services)
+      if (searchQuery.trim()) {
+        const matchesQuery = matchesPharmacyFuzzy(pharma, searchQuery, fuzzyLocations);
+        if (!matchesQuery) {
           return false;
         }
       }
@@ -219,7 +242,7 @@ export default function App() {
       }
       return a.name.localeCompare(b.name);
     });
-  }, [IVORY_COAST_PHARMACIES, activeTab, favorites, onlyDuty, only24h, selectedCommune, searchQuery, sortBy, currentCoords]);
+  }, [IVORY_COAST_PHARMACIES, activeTab, favorites, onlyDuty, only24h, selectedRegion, selectedCommune, searchQuery, fuzzyLocations, sortBy, currentCoords]);
 
   const dutyPharmaciesCount = useMemo(() => {
     return IVORY_COAST_PHARMACIES.filter((p) => p.isOnDuty).length;
@@ -433,7 +456,7 @@ export default function App() {
             <input
               id="main-search-input"
               type="text"
-              placeholder="Rechercher une pharmacie, quartier, repère ou médicament (Doliprane, Sérum, Paludisme...)"
+              placeholder="Rechercher une pharmacie, commune, région, quartier ou médicament (ex: Cocody, Yopougon, Doliprane...)"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full rounded-2xl bg-slate-50 border border-slate-200 pl-11 pr-10 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-[#1F7A4D] focus:ring-2 focus:ring-emerald-500/20 outline-hidden transition"
@@ -448,19 +471,71 @@ export default function App() {
             )}
           </div>
 
+          {/* Fuzzy location match feedback badge if a typo or variation is detected */}
+          {fuzzyLocations.suggestion && (
+            <div className="mb-3 flex items-center justify-between gap-2 px-3.5 py-2 rounded-2xl bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 border border-emerald-200 text-xs text-emerald-950 shadow-2xs">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-emerald-600 shrink-0" />
+                <span className="leading-snug">
+                  Recherche floue active : résultats pour la {fuzzyLocations.suggestion.type === 'commune' ? 'commune' : 'région'} de{' '}
+                  <strong className="font-extrabold text-emerald-950 underline decoration-emerald-500 underline-offset-2">
+                    {fuzzyLocations.suggestion.matchedName}
+                  </strong>{' '}
+                  <span className="text-slate-500 font-normal">
+                    (correspondant à "{fuzzyLocations.suggestion.originalWord}")
+                  </span>
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  if (fuzzyLocations.suggestion) {
+                    const regex = new RegExp(fuzzyLocations.suggestion.originalWord, 'gi');
+                    setSearchQuery(searchQuery.replace(regex, fuzzyLocations.suggestion.matchedName));
+                  }
+                }}
+                className="text-[11px] font-bold text-emerald-800 hover:text-emerald-950 px-2.5 py-1 rounded-xl bg-white border border-emerald-300 hover:bg-emerald-100 transition shrink-0 cursor-pointer shadow-2xs"
+                title="Remplacer par l'orthographe officielle"
+              >
+                Appliquer {fuzzyLocations.suggestion.matchedName}
+              </button>
+            </div>
+          )}
+
           {/* Quick Filters Row */}
           <div className="flex flex-wrap items-center justify-between gap-2.5 pt-1">
             {/* Left Filter Chips */}
             <div className="flex flex-wrap items-center gap-2">
-              {/* Commune Selector */}
+              {/* Region Selector (31 Régions & Districts) */}
+              <div className="relative">
+                <select
+                  id="region-dropdown"
+                  value={selectedRegion}
+                  onChange={(e) => {
+                    const newReg = e.target.value;
+                    setSelectedRegion(newReg);
+                    setSelectedCommune('Toutes les communes');
+                  }}
+                  className="rounded-xl border border-slate-200 bg-emerald-50/50 text-slate-800 py-2 pl-3 pr-8 text-xs font-bold focus:border-[#1F7A4D] outline-hidden cursor-pointer max-w-[210px] truncate"
+                  title="Choisir une région ou district de Côte d'Ivoire"
+                >
+                  {ALL_REGION_NAMES.map((reg) => (
+                    <option key={reg} value={reg}>
+                      {reg}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Commune Selector (dynamically updated) */}
               <div className="relative">
                 <select
                   id="commune-dropdown"
                   value={selectedCommune}
                   onChange={(e) => setSelectedCommune(e.target.value)}
-                  className="rounded-xl border border-slate-200 bg-slate-50 text-slate-800 py-2 pl-3 pr-8 text-xs font-bold focus:border-[#1F7A4D] outline-hidden cursor-pointer"
+                  className="rounded-xl border border-slate-200 bg-slate-50 text-slate-800 py-2 pl-3 pr-8 text-xs font-bold focus:border-[#1F7A4D] outline-hidden cursor-pointer max-w-[170px] truncate"
                 >
-                  {ALL_COMMUNES.map((com) => (
+                  {availableCommunes.map((com) => (
                     <option key={com} value={com}>
                       {com}
                     </option>
@@ -551,11 +626,12 @@ export default function App() {
           </div>
 
           {/* Reset Filters button if any are applied */}
-          {(searchQuery || selectedCommune !== 'Toutes les communes' || onlyDuty || only24h) && (
+          {(searchQuery || selectedRegion !== 'Toutes les régions' || selectedCommune !== 'Toutes les communes' || onlyDuty || only24h) && (
             <button
               id="btn-reset-filters"
               onClick={() => {
                 setSearchQuery('');
+                setSelectedRegion('Toutes les régions');
                 setSelectedCommune('Toutes les communes');
                 setOnlyDuty(false);
                 setOnly24h(false);
@@ -682,7 +758,12 @@ export default function App() {
 
       <Emergency118Modal
         isOpen={isEmergencyOpen}
-        onClose={() => setIsEmergencyOpen(false)}
+        onClose={() => {
+          setIsEmergencyOpen(false);
+          if (isAppLockEnforced() && !appConfirmation.isConfirmed) {
+            setIsGateOpen(true);
+          }
+        }}
         userCoords={currentCoords}
       />
 
@@ -718,6 +799,10 @@ export default function App() {
       <AdminModal
         isOpen={isAdminOpen}
         onClose={() => setIsAdminOpen(false)}
+        onSuccess={(sub) => {
+          handleSaveSubscription(sub);
+          setAppConfirmation(getStoredAppConfirmation());
+        }}
       />
 
       {/* App Confirmation Gate Modal (Max adiko Clovis Garal) */}
@@ -737,7 +822,11 @@ export default function App() {
           setIsGateOpen(false);
           setIsEmergencyOpen(true);
         }}
-        isDismissible={appConfirmation.isConfirmed}
+        onOpenAdmin={() => {
+          setIsGateOpen(false);
+          setIsAdminOpen(true);
+        }}
+        isDismissible={true}
         onClose={() => setIsGateOpen(false)}
       />
 

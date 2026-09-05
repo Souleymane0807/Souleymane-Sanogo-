@@ -51,7 +51,7 @@ export const InstallAndRegisterModal: React.FC<InstallAndRegisterModalProps> = (
   const [fullName, setFullName] = useState(subscription?.userName || '');
   const [phoneNumber, setPhoneNumber] = useState(subscription?.phone || '');
   const [commune, setCommune] = useState(subscription?.commune || 'Cocody');
-  const [membershipType, setMembershipType] = useState<'free' | 'vip1000'>('vip1000');
+  const [membershipType, setMembershipType] = useState<'free' | 'vip1000' | 'vip10000'>('free');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('wave');
   const [receiveWhatsApp, setReceiveWhatsApp] = useState(true);
   const [receiveSMS, setReceiveSMS] = useState(true);
@@ -113,12 +113,8 @@ export const InstallAndRegisterModal: React.FC<InstallAndRegisterModalProps> = (
 
   const handleInstallClick = async () => {
     if (isInstallable) {
-      const outcome = await install();
+      await install();
       setHasTriggeredInstall(true);
-      if (outcome) {
-        // Proceed to registration
-        setCurrentStep('register');
-      }
     } else if (isIOS) {
       setHasTriggeredInstall(true);
     } else {
@@ -140,10 +136,15 @@ export const InstallAndRegisterModal: React.FC<InstallAndRegisterModalProps> = (
     setTimeout(() => {
       const now = new Date();
       const expires = new Date();
-      expires.setMonth(expires.getMonth() + 1);
+      if (membershipType === 'vip10000') {
+        expires.setFullYear(expires.getFullYear() + 1);
+      } else {
+        expires.setMonth(expires.getMonth() + 1);
+      }
 
       const randomMemberNum = Math.floor(1000 + Math.random() * 9000);
-      const isVip = membershipType === 'vip1000';
+      const isVip = membershipType === 'vip1000' || membershipType === 'vip10000';
+      const isAnnual = membershipType === 'vip10000';
 
       const newSub: UserSubscription = {
         id: 'sub-' + Date.now(),
@@ -151,8 +152,8 @@ export const InstallAndRegisterModal: React.FC<InstallAndRegisterModalProps> = (
         userName: fullName.trim(),
         phone: phoneNumber.trim(),
         commune: commune,
-        planName: isVip ? 'Abonnement 1000F Mensuel' : 'Adhérent Gratuit Pharmacies CI',
-        priceCFA: isVip ? 1000 : 0,
+        planName: isAnnual ? 'Pass Annuel VIP (10 000F)' : isVip ? 'Abonnement 1000F Mensuel' : 'Forfait Gratuit Pharmacies CI',
+        priceCFA: isAnnual ? 10000 : isVip ? 1000 : 0,
         paymentMethod: isVip ? paymentMethod : 'orange_money',
         status: 'active',
         activatedAt: now.toLocaleDateString('fr-FR'),
@@ -179,7 +180,7 @@ export const InstallAndRegisterModal: React.FC<InstallAndRegisterModalProps> = (
           origin: { y: 0.6 }
         });
       } catch {
-        // safe fallback
+        // Safe fallback
       }
     }, 1200);
   };
@@ -199,19 +200,19 @@ export const InstallAndRegisterModal: React.FC<InstallAndRegisterModalProps> = (
           <div className="flex items-center justify-between pb-4 border-b border-emerald-100">
             <div className="flex items-center gap-3">
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#1F7A4D] to-[#145A32] text-white shadow-md shadow-emerald-950/20">
-                <Smartphone className="h-6 w-6" />
+                <Download className="h-6 w-6" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
                   <h2 className="text-lg sm:text-xl font-black text-slate-900">
-                    Installer & S’inscrire
+                    Télécharger l’Application & Forfaits
                   </h2>
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800">
                     SANTÉ CI 24/7
                   </span>
                 </div>
                 <p className="text-xs text-slate-500">
-                  Installation rapide sur l'écran d'accueil & création de votre profil de garde
+                  Téléchargez l'application sur votre écran d'accueil, puis choisissez librement votre forfait
                 </p>
               </div>
             </div>
@@ -241,7 +242,7 @@ export const InstallAndRegisterModal: React.FC<InstallAndRegisterModalProps> = (
                 <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-[11px]">
                   1
                 </span>
-                <span>1. Installer l’Application</span>
+                <span>1. Télécharger l’App (Gratuit)</span>
               </button>
 
               <button
@@ -256,25 +257,25 @@ export const InstallAndRegisterModal: React.FC<InstallAndRegisterModalProps> = (
                 <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-[11px]">
                   2
                 </span>
-                <span>2. S’inscrire</span>
+                <span>2. Choisir un Forfait (Optionnel)</span>
               </button>
             </div>
           )}
 
-          {/* STEP 1: INSTALL APP */}
+          {/* STEP 1: INSTALL / DOWNLOAD APP */}
           {currentStep === 'install' && (
             <div className="mt-4 space-y-4">
               {/* Highlight Hero Card */}
               <div className="rounded-3xl bg-gradient-to-br from-[#1F7A4D] via-[#145A32] to-[#0D3820] p-5 text-white shadow-xl shadow-emerald-950/20 relative overflow-hidden">
                 <div className="relative z-10">
                   <span className="inline-block px-2.5 py-0.5 rounded-full bg-emerald-400/20 text-[10px] font-extrabold uppercase tracking-wider text-emerald-200 border border-emerald-400/30 mb-2">
-                    Application Officielle Côte d’Ivoire
+                    Téléchargement Gratuit • Côte d’Ivoire
                   </span>
                   <h3 className="text-xl sm:text-2xl font-black leading-tight">
                     Ajoutez Pharmacies CI à votre écran d’accueil
                   </h3>
                   <p className="text-xs text-emerald-100 mt-2 leading-relaxed">
-                    Installez l'application en 1 seconde sans passer par le Play Store ni l'App Store. Aucun fichier lourd à télécharger, 0 Mo de données gaspillées !
+                    Téléchargez l'application en 1 seconde sans passer par le Play Store ni l'App Store. Aucun fichier lourd, 0 Mo gaspillé, et accès 100% hors-ligne immédiat !
                   </p>
 
                   <div className="mt-4 pt-3 border-t border-emerald-600/40 grid grid-cols-2 gap-2 text-[11px] text-emerald-100">
@@ -284,16 +285,24 @@ export const InstallAndRegisterModal: React.FC<InstallAndRegisterModalProps> = (
                     </div>
                     <div className="flex items-center gap-1.5">
                       <BellRing className="h-4 w-4 text-amber-300 shrink-0" />
-                      <span>Alertes pharmacies de garde</span>
+                      <span>Urgences 118 & Gardes</span>
                     </div>
                   </div>
                 </div>
               </div>
 
+              {/* Success badge if already installed */}
+              {(isInstalled || hasTriggeredInstall) && (
+                <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-300 text-emerald-900 text-xs font-bold flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-700 shrink-0" />
+                  <span>Application prête sur votre téléphone ! Vous pouvez l'utiliser directement ou choisir un forfait ci-dessous.</span>
+                </div>
+              )}
+
               {/* Install Action Area depending on device */}
               <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-3">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                  Méthode d'installation sur votre appareil :
+                  Téléchargement & Installation sur votre appareil :
                 </h4>
 
                 {/* Case 1: Browser supports native PWA install prompt (Chrome Android, Desktop, Edge) */}
@@ -304,7 +313,7 @@ export const InstallAndRegisterModal: React.FC<InstallAndRegisterModalProps> = (
                     className="w-full flex items-center justify-center gap-3 py-4 px-4 rounded-2xl bg-[#1F7A4D] hover:bg-[#145A32] text-white font-black text-sm shadow-lg shadow-emerald-900/20 active:scale-98 transition"
                   >
                     <Download className="h-5 w-5 animate-bounce" />
-                    <span>INSTALLER SUR MON ÉCRAN D’ACCUEIL</span>
+                    <span>TÉLÉCHARGER / INSTALLER SUR MON TÉLÉPHONE</span>
                   </button>
                 )}
 
@@ -316,7 +325,7 @@ export const InstallAndRegisterModal: React.FC<InstallAndRegisterModalProps> = (
                         <Share className="h-4 w-4" />
                       </div>
                       <div>
-                        <strong>1. Appuyez sur le bouton Partager</strong> de Safari (au centre en bas de votre écran).
+                        <strong>1. Appuyez sur le bouton Partager</strong> de Safari (au centre en bas de votre écran iPhone).
                       </div>
                     </div>
 
@@ -344,75 +353,116 @@ export const InstallAndRegisterModal: React.FC<InstallAndRegisterModalProps> = (
                 )}
               </div>
 
-              {/* Progression Button to Step 2 */}
-              <button
-                id="btn-proceed-to-register"
-                onClick={() => setCurrentStep('register')}
-                className="w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-black text-sm shadow-md shadow-orange-500/20 hover:brightness-105 active:scale-98 transition"
-              >
-                <span>Continuer vers l’Inscription</span>
-                <ArrowRight className="h-4 w-4" />
-              </button>
+              {/* Next choices: Choose a forfait (optional) OR use app directly */}
+              <div className="space-y-2 pt-1">
+                <button
+                  id="btn-proceed-to-forfaits"
+                  onClick={() => setCurrentStep('register')}
+                  className="w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-black text-sm shadow-md shadow-orange-500/20 hover:brightness-105 active:scale-98 transition"
+                >
+                  <Sparkles className="h-4 w-4 text-amber-200" />
+                  <span>Étape suivante : Choisir un Forfait (Optionnel)</span>
+                  <ArrowRight className="h-4 w-4" />
+                </button>
+
+                <button
+                  id="btn-use-free-directly"
+                  onClick={onClose}
+                  className="w-full py-3 px-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition text-center"
+                >
+                  Commencer à utiliser l'application gratuitement (sans forfait)
+                </button>
+              </div>
 
               <p className="text-center text-[11px] text-slate-400">
-                Vous pouvez également vous inscrire en premier et installer l'application à tout moment.
+                Vous pouvez naviguer librement et choisir un forfait à tout moment dans le menu.
               </p>
             </div>
           )}
 
-          {/* STEP 2: REGISTER FORM */}
+          {/* STEP 2: REGISTER FORM / CHOIX DU FORFAIT */}
           {currentStep === 'register' && (
             <form onSubmit={handleRegistrationSubmit} className="mt-4 space-y-4">
               {/* Membership selector */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-2">
-                  Choisissez votre formule d’adhésion :
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  {/* Option 1: VIP 1000F */}
-                  <div
-                    onClick={() => setMembershipType('vip1000')}
-                    className={`p-3.5 rounded-2xl border-2 cursor-pointer transition relative ${
-                      membershipType === 'vip1000'
-                        ? 'border-amber-500 bg-amber-50/50 shadow-sm'
-                        : 'border-slate-200 hover:border-slate-300 bg-white'
-                    }`}
-                  >
-                    <div className="absolute top-2.5 right-2.5">
-                      <span className="px-1.5 py-0.5 rounded-md text-[9px] font-black bg-amber-500 text-white">
-                        RECOMMANDÉ
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Sparkles className="h-4 w-4 text-amber-600" />
-                      <span className="font-extrabold text-sm text-slate-900">Pass VIP 1000F</span>
-                    </div>
-                    <p className="text-base font-black text-amber-800 mt-1">
-                      1 000 FCFA <span className="text-xs font-normal text-slate-500">/ mois</span>
-                    </p>
-                    <p className="text-[11px] text-slate-600 mt-1.5 leading-snug">
-                      Alertes WhatsApp/SMS de garde chaque vendredi + Conciergerie médicaments rares 24/7.
-                    </p>
-                  </div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-xs font-bold text-slate-700">
+                    Choisissez votre forfait (selon vos souhaits) :
+                  </label>
+                  <span className="text-[11px] text-slate-400">Optionnel</span>
+                </div>
 
-                  {/* Option 2: Free registration */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  {/* Option 1: Free registration */}
                   <div
                     onClick={() => setMembershipType('free')}
                     className={`p-3.5 rounded-2xl border-2 cursor-pointer transition relative ${
                       membershipType === 'free'
-                        ? 'border-emerald-600 bg-emerald-50/50 shadow-sm'
+                        ? 'border-emerald-600 bg-emerald-50/50 shadow-sm ring-1 ring-emerald-600'
                         : 'border-slate-200 hover:border-slate-300 bg-white'
                     }`}
                   >
                     <div className="flex items-center gap-2">
                       <UserCheck className="h-4 w-4 text-emerald-600" />
-                      <span className="font-extrabold text-sm text-slate-900">Adhérent Gratuit</span>
+                      <span className="font-extrabold text-xs text-slate-900">Forfait Gratuit</span>
                     </div>
                     <p className="text-base font-black text-emerald-700 mt-1">
-                      Gratuit <span className="text-xs font-normal text-slate-500">(0 FCFA)</span>
+                      0 FCFA
                     </p>
-                    <p className="text-[11px] text-slate-600 mt-1.5 leading-snug">
-                      Accès illimité à l'annuaire hors-ligne, coordonnées 118, recherche GPS et favoris.
+                    <p className="text-[10px] text-slate-600 mt-1 leading-snug">
+                      Annuaire complet, gardes, recherche GPS, urgences 118, 100% hors-ligne.
+                    </p>
+                  </div>
+
+                  {/* Option 2: VIP 1000F */}
+                  <div
+                    onClick={() => setMembershipType('vip1000')}
+                    className={`p-3.5 rounded-2xl border-2 cursor-pointer transition relative ${
+                      membershipType === 'vip1000'
+                        ? 'border-amber-500 bg-amber-50/50 shadow-sm ring-1 ring-amber-500'
+                        : 'border-slate-200 hover:border-slate-300 bg-white'
+                    }`}
+                  >
+                    <div className="absolute top-2 right-2">
+                      <span className="px-1.5 py-0.5 rounded-md text-[8px] font-black bg-amber-500 text-white">
+                        POPULAIRE
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Sparkles className="h-4 w-4 text-amber-600" />
+                      <span className="font-extrabold text-xs text-slate-900">Pass VIP Mensuel</span>
+                    </div>
+                    <p className="text-base font-black text-amber-800 mt-1">
+                      1 000 F <span className="text-[10px] font-normal text-slate-500">/ mois</span>
+                    </p>
+                    <p className="text-[10px] text-slate-600 mt-1 leading-snug">
+                      Alertes WhatsApp/SMS de garde chaque vendredi + Conciergerie médicaments rares 24/7.
+                    </p>
+                  </div>
+
+                  {/* Option 3: VIP Annuel 10 000F */}
+                  <div
+                    onClick={() => setMembershipType('vip10000')}
+                    className={`p-3.5 rounded-2xl border-2 cursor-pointer transition relative ${
+                      membershipType === 'vip10000'
+                        ? 'border-purple-600 bg-purple-50/50 shadow-sm ring-1 ring-purple-600'
+                        : 'border-slate-200 hover:border-slate-300 bg-white'
+                    }`}
+                  >
+                    <div className="absolute top-2 right-2">
+                      <span className="px-1.5 py-0.5 rounded-md text-[8px] font-black bg-purple-600 text-white">
+                        -2 MOIS
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Sparkles className="h-4 w-4 text-purple-600" />
+                      <span className="font-extrabold text-xs text-slate-900">Pass VIP Annuel</span>
+                    </div>
+                    <p className="text-base font-black text-purple-800 mt-1">
+                      10 000 F <span className="text-[10px] font-normal text-slate-500">/ an</span>
+                    </p>
+                    <p className="text-[10px] text-slate-600 mt-1 leading-snug">
+                      Tous les avantages VIP pendant 12 mois complets (2 mois offerts).
                     </p>
                   </div>
                 </div>
@@ -456,7 +506,7 @@ export const InstallAndRegisterModal: React.FC<InstallAndRegisterModalProps> = (
                     <select
                       value={commune}
                       onChange={(e) => setCommune(e.target.value)}
-                      className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 outline-hidden bg-white"
+                      className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 outline-hidden bg-white"
                     >
                       <option value="Cocody">Cocody (Angré, Riviera, 2 Plateaux)</option>
                       <option value="Yopougon">Yopougon (Siporex, Maroc, Niangon)</option>
@@ -477,11 +527,11 @@ export const InstallAndRegisterModal: React.FC<InstallAndRegisterModalProps> = (
                   </div>
                 </div>
 
-                {/* Mobile money selection if VIP 1000F */}
-                {membershipType === 'vip1000' && (
+                {/* Mobile money selection if VIP */}
+                {(membershipType === 'vip1000' || membershipType === 'vip10000') && (
                   <div className="space-y-2.5">
                     <label className="block text-xs font-bold text-slate-700">
-                      Règlement sécurisé des 1 000 FCFA :
+                      Règlement sécurisé du forfait ({membershipType === 'vip10000' ? '10 000 FCFA' : '1 000 FCFA'}) :
                     </label>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                       {[
@@ -522,7 +572,7 @@ export const InstallAndRegisterModal: React.FC<InstallAndRegisterModalProps> = (
                           onClick={() => window.open(PAYMENT_CONFIG.wavePayUrl, '_blank')}
                           className="w-full flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-[#1DA1F2] hover:bg-blue-600 text-white font-bold text-xs shadow-xs transition"
                         >
-                          <span>Payer 1 000 F directement sur Wave</span>
+                          <span>Payer directement sur Wave</span>
                           <ExternalLink className="h-3.5 w-3.5" />
                         </button>
                       </div>
@@ -560,7 +610,7 @@ export const InstallAndRegisterModal: React.FC<InstallAndRegisterModalProps> = (
                   onClick={() => setCurrentStep('install')}
                   className="py-3 px-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition"
                 >
-                  ← Étape installation
+                  ← Étape téléchargement
                 </button>
 
                 <button
@@ -576,9 +626,23 @@ export const InstallAndRegisterModal: React.FC<InstallAndRegisterModalProps> = (
                     </>
                   ) : (
                     <span>
-                      {membershipType === 'vip1000' ? 'S’inscrire & Payer 1 000F' : 'Finaliser mon inscription'}
+                      {membershipType === 'free'
+                        ? 'Activer mon Forfait Gratuit (0 F)'
+                        : membershipType === 'vip10000'
+                        ? 'Souscrire Pass Annuel (10 000F)'
+                        : 'Souscrire Pass VIP (1 000F)'}
                     </span>
                   )}
+                </button>
+              </div>
+
+              <div className="text-center pt-1">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="text-xs text-slate-500 hover:text-slate-800 font-semibold underline"
+                >
+                  Passer cette étape et utiliser l'application sans forfait
                 </button>
               </div>
 
@@ -615,7 +679,7 @@ export const InstallAndRegisterModal: React.FC<InstallAndRegisterModalProps> = (
                           setCodeDirectInput(e.target.value.toUpperCase());
                           setCodeDirectError('');
                         }}
-                        placeholder="Ex: GARAL2026"
+                        placeholder="Code secret reçu..."
                         className="flex-1 rounded-xl border border-slate-300 px-3 py-2 text-xs font-mono font-bold uppercase focus:border-emerald-600 outline-hidden bg-white"
                       />
                       <button

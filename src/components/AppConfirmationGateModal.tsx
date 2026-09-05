@@ -9,7 +9,9 @@ import {
   Sparkles,
   AlertCircle,
   HelpCircle,
-  PhoneCall
+  PhoneCall,
+  Lock,
+  Shield
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import {
@@ -24,6 +26,7 @@ interface AppConfirmationGateModalProps {
   onEmergencyAccess: () => void;
   isDismissible?: boolean;
   onClose?: () => void;
+  onOpenAdmin?: () => void;
 }
 
 export const AppConfirmationGateModal: React.FC<AppConfirmationGateModalProps> = ({
@@ -31,7 +34,8 @@ export const AppConfirmationGateModal: React.FC<AppConfirmationGateModalProps> =
   onSuccess,
   onEmergencyAccess,
   isDismissible = true,
-  onClose
+  onClose,
+  onOpenAdmin
 }) => {
   const [codeInput, setCodeInput] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
@@ -114,7 +118,7 @@ export const AppConfirmationGateModal: React.FC<AppConfirmationGateModalProps> =
               <button
                 type="button"
                 onClick={onClose}
-                className="text-slate-300 hover:text-white transition p-1.5 rounded-full hover:bg-white/10"
+                className="text-slate-300 hover:text-white transition p-1.5 rounded-full hover:bg-white/10 cursor-pointer"
                 title="Fermer"
               >
                 ✕
@@ -150,7 +154,7 @@ export const AppConfirmationGateModal: React.FC<AppConfirmationGateModalProps> =
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center justify-between">
                     <span>Saisissez votre code reçu après paiement :</span>
-                    <span className="text-[11px] text-slate-400 font-mono">Ex: GARAL2026</span>
+                    <span className="text-[11px] text-slate-400 font-mono">Code confidentiel</span>
                   </label>
                   <div className="relative">
                     <input
@@ -243,20 +247,28 @@ export const AppConfirmationGateModal: React.FC<AppConfirmationGateModalProps> =
                 </div>
               </div>
 
-              {/* Emergency Bypass */}
-              <div className="pt-1 border-t border-slate-100 flex items-center justify-between">
+              {/* Emergency Bypass & Admin Access */}
+              <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-3">
                 <button
                   type="button"
                   onClick={onEmergencyAccess}
-                  className="flex items-center gap-1.5 text-xs text-red-600 hover:text-red-700 font-bold hover:underline"
+                  className="flex items-center gap-1.5 text-xs text-red-600 hover:text-red-700 font-bold hover:underline cursor-pointer"
                 >
                   <PhoneCall className="h-3.5 w-3.5" />
                   <span>Numéros d'urgence 118 / SAMU</span>
                 </button>
 
-                <span className="text-[10px] text-slate-400 font-mono">
-                  Code test : GARAL2026
-                </span>
+                {onOpenAdmin && (
+                  <button
+                    type="button"
+                    onClick={onOpenAdmin}
+                    className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-900 font-bold transition cursor-pointer"
+                    title="Accéder au panneau administrateur"
+                  >
+                    <Shield className="h-3.5 w-3.5 text-emerald-600" />
+                    <span>Espace Admin</span>
+                  </button>
+                )}
               </div>
             </>
           )}

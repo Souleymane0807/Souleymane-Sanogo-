@@ -1,3 +1,13 @@
+export interface RegionInfo {
+  id: string;
+  name: string;
+  chefLieu: string;
+  isAutonomousDistrict?: boolean;
+  communes: string[];
+  lat: number;
+  lng: number;
+}
+
 export type CityCI = 
   | 'Abidjan' 
   | 'Yamoussoukro' 
@@ -5,7 +15,8 @@ export type CityCI =
   | 'San-Pédro' 
   | 'Korhogo' 
   | 'Daloa' 
-  | 'Grand-Bassam';
+  | 'Grand-Bassam'
+  | string;
 
 export type CommuneAbidjan = 
   | 'Cocody' 
@@ -32,6 +43,7 @@ export interface MedicationItem {
 export interface Pharmacy {
   id: string;
   name: string;
+  region?: string;
   city: CityCI;
   commune: string;
   neighborhood: string;

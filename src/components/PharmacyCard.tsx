@@ -138,7 +138,12 @@ export const PharmacyCard: React.FC<PharmacyCardProps> = ({
             <span>{pharmacy.name}</span>
             <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-[#1F7A4D] group-hover:translate-x-0.5 transition shrink-0" />
           </h3>
-          <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
+          <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5 flex-wrap">
+            {pharmacy.region && (
+              <span className="inline-block bg-emerald-50 text-[#1F7A4D] font-bold px-1.5 py-0.5 rounded-md text-[10px] border border-emerald-200">
+                {pharmacy.region}
+              </span>
+            )}
             <span className="font-semibold text-slate-700">{pharmacy.city}</span> • {pharmacy.commune} ({pharmacy.neighborhood})
           </p>
         </div>

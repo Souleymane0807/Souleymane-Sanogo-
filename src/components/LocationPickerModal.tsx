@@ -1,5 +1,5 @@
-import React from 'react';
-import { X, Navigation, MapPin, Check } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, Navigation, MapPin, Check, Search } from 'lucide-react';
 import { Coords, PRESET_LOCATIONS } from '../hooks/useGeolocation';
 
 interface LocationPickerModalProps {
@@ -21,7 +21,13 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
   onRequestGps,
   onSelectPreset
 }) => {
+  const [filterQuery, setFilterQuery] = useState('');
+
   if (!isOpen) return null;
+
+  const filteredLocations = PRESET_LOCATIONS.filter((loc) =>
+    (loc.name || '').toLowerCase().includes(filterQuery.toLowerCase())
+  );
 
   return (
     <div
@@ -74,34 +80,59 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
           </button>
         </div>
 
-        {/* Preset communes in Côte d'Ivoire */}
-        <div className="mt-4 space-y-1.5">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block px-1">
-            Ou choisir un quartier / commune de Côte d’Ivoire :
-          </span>
+        {/* Search Input for 31 Regions & Communes */}
+        <div className="mt-4">
+          <div className="relative">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <input
+              type="text"
+              value={filterQuery}
+              onChange={(e) => setFilterQuery(e.target.value)}
+              placeholder="Rechercher une région ou commune (ex: Man, Daloa, Gagnoa...)"
+              className="w-full pl-9.5 pr-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-medium text-slate-800 placeholder:text-slate-400 focus:bg-white focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 outline-hidden transition"
+            />
+          </div>
+        </div>
 
-          <div className="divide-y divide-slate-100 border border-slate-200/80 rounded-2xl overflow-hidden">
-            {PRESET_LOCATIONS.map((preset, idx) => {
-              const isSelected = !isUsingRealGps && currentCoords.name === preset.name;
-              return (
-                <button
-                  key={idx}
-                  onClick={() => {
-                    onSelectPreset(preset);
-                    onClose();
-                  }}
-                  className={`w-full flex items-center justify-between p-3 text-left text-xs sm:text-sm font-medium transition ${
-                    isSelected ? 'bg-emerald-50/80 text-[#1F7A4D] font-bold' : 'hover:bg-slate-50 text-slate-800'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <MapPin className={`h-4 w-4 ${isSelected ? 'text-[#1F7A4D]' : 'text-slate-400'}`} />
-                    <span>{preset.name}</span>
-                  </div>
-                  {isSelected && <Check className="h-4 w-4 text-[#1F7A4D]" />}
-                </button>
-              );
-            })}
+        {/* Preset communes & 31 regions in Côte d'Ivoire */}
+        <div className="mt-4 space-y-1.5">
+          <div className="flex items-center justify-between px-1">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block">
+              31 Régions & Districts de Côte d’Ivoire :
+            </span>
+            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+              {filteredLocations.length} disponibles
+            </span>
+          </div>
+
+          <div className="divide-y divide-slate-100 border border-slate-200/80 rounded-2xl overflow-hidden max-h-60 overflow-y-auto">
+            {filteredLocations.length > 0 ? (
+              filteredLocations.map((preset, idx) => {
+                const isSelected = !isUsingRealGps && currentCoords.name === preset.name;
+                return (
+                  <button
+                    key={idx}
+                    onClick={() => {
+                      onSelectPreset(preset);
+                      onClose();
+                    }}
+                    className={`w-full flex items-center justify-between p-3 text-left text-xs sm:text-sm font-medium transition ${
+                      isSelected ? 'bg-emerald-50/80 text-[#1F7A4D] font-bold' : 'hover:bg-slate-50 text-slate-800'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <MapPin className={`h-4 w-4 ${isSelected ? 'text-[#1F7A4D]' : 'text-slate-400'}`} />
+                      <span>{preset.name}</span>
+                    </div>
+                    {isSelected && <Check className="h-4 w-4 text-[#1F7A4D]" />}
+                  </button>
+                );
+              })
+            ) : (
+              <div className="p-4 text-center text-xs text-slate-500">
+                Aucune région ni commune trouvée pour "{filterQuery}".
+              </div>
+            )}
           </div>
         </div>
       </div>

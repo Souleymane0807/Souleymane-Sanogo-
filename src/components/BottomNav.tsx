@@ -72,9 +72,9 @@ export const BottomNav: React.FC<BottomNavProps> = ({
           <span className="text-[10px] font-black text-red-600 mt-1">118 SOS</span>
         </button>
 
-        {/* Tab: Installer & S'inscrire / VIP */}
+        {/* Tab: Télécharger / Forfaits VIP */}
         <button
-          id="btn-tab-install-register"
+          id="btn-tab-download-app"
           onClick={hasSubscription && onOpenVipFeatures ? onOpenVipFeatures : onOpenInstallRegister}
           className="flex flex-col items-center justify-center py-1 rounded-xl text-emerald-800 hover:text-emerald-950 transition"
         >
@@ -84,7 +84,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
             <Download className="h-5 w-5 text-[#1F7A4D] animate-bounce" />
           )}
           <span className="text-[10px] font-bold text-emerald-900 mt-0.5">
-            {hasSubscription ? 'Pass VIP' : "S'inscrire"}
+            {hasSubscription ? 'Pass VIP' : 'Télécharger'}
           </span>
         </button>
 

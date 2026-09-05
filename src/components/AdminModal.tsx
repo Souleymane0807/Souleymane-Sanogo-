@@ -15,7 +15,9 @@ import {
   Lock,
   Unlock,
   AlertTriangle,
-  FileText
+  FileText,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import {
   PAYMENT_CONFIG,
@@ -24,6 +26,7 @@ import {
   verifyConfirmationCode,
   registerNewConfirmationCode,
   saveAppConfirmation,
+  ensureActiveSubscription,
   isAppLockEnforced,
   setAppLockEnforced
 } from '../services/subscriptionService';
@@ -32,13 +35,18 @@ import { UserSubscription } from '../types';
 interface AdminModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onSuccess?: (sub: UserSubscription) => void;
+  onLogout?: () => void;
   onOpenGate?: () => void;
 }
 
-export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose }) => {
+export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose, onSuccess, onLogout }) => {
   const [adminCodeInput, setAdminCodeInput] = useState('');
+  const [showAdminCode, setShowAdminCode] = useState(false);
+  const [showSystemCodes, setShowSystemCodes] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authError, setAuthError] = useState('');
+  const [logoutMessage, setLogoutMessage] = useState('');
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
   // Generator state
@@ -47,7 +55,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose }) => {
   const [generatedCode, setGeneratedCode] = useState('');
 
   // Lock enforcement state
-  const [lockEnforced, setLockEnforced] = useState(true);
+  const [lockEnforced, setLockEnforced] = useState(false);
 
   // Logs & codes
   const [subscriberLogs, setSubscriberLogs] = useState<any[]>([]);
@@ -55,20 +63,19 @@ export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose }) => {
 
   useEffect(() => {
     if (isOpen) {
-      // Check if already authenticated in this session or local storage
-      const appConf = localStorage.getItem('pharmacies_ci_app_confirmed');
-      if (appConf) {
-        try {
-          const parsed = JSON.parse(appConf);
-          if (parsed.role === 'admin') {
-            setIsAuthenticated(true);
-          }
-        } catch {
-          // ignore
-        }
+      // Admin session is verified via session storage so it requires code when opened in new context
+      const sessionActive = sessionStorage.getItem('pharmacies_ci_admin_auth');
+      if (sessionActive === 'true') {
+        setIsAuthenticated(true);
+      } else {
+        setIsAuthenticated(false);
       }
       setLockEnforced(isAppLockEnforced());
       loadData();
+    } else {
+      setAuthError('');
+      setLogoutMessage('');
+      setAdminCodeInput('');
     }
   }, [isOpen]);
 
@@ -86,16 +93,28 @@ export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose }) => {
 
   if (!isOpen) return null;
 
-  const handleAdminLogin = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleAdminLogin = (e?: React.FormEvent, directCode?: string) => {
+    if (e) e.preventDefault();
     setAuthError('');
+    setLogoutMessage('');
 
-    const res = verifyConfirmationCode(adminCodeInput);
-    if (res.valid && (res.role === 'admin' || adminCodeInput.trim().toUpperCase() === 'GARAL2026' || adminCodeInput.trim().toUpperCase() === 'MAX225')) {
+    const targetCode = (directCode || adminCodeInput).trim().toUpperCase();
+    const res = verifyConfirmationCode(targetCode);
+
+    if (res.valid && res.role === 'admin') {
       setIsAuthenticated(true);
-      saveAppConfirmation(adminCodeInput, 'admin');
+      try {
+        sessionStorage.setItem('pharmacies_ci_admin_auth', 'true');
+        saveAppConfirmation(targetCode, 'admin');
+      } catch (e) {
+        console.error(e);
+      }
+      const sub = ensureActiveSubscription(targetCode, 'Administrateur Pharmacies CI', '+225 0700000000');
+      if (onSuccess) {
+        onSuccess(sub);
+      }
     } else {
-      setAuthError('Code admin invalide. Veuillez saisir le code envoyé par Max adiko Clovis Garal.');
+      setAuthError('Code administrateur incorrect ou non autorisé.');
     }
   };
 
@@ -117,6 +136,23 @@ export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose }) => {
   const handleToggleLock = (val: boolean) => {
     setLockEnforced(val);
     setAppLockEnforced(val);
+  };
+
+  const handleAdminLogout = () => {
+    setIsAuthenticated(false);
+    setAdminCodeInput('');
+    setAuthError('');
+    setShowAdminCode(false);
+    setLogoutMessage('Code administrateur verrouillé. Votre session administrateur est désormais fermée.');
+    try {
+      sessionStorage.removeItem('pharmacies_ci_admin_auth');
+      localStorage.removeItem('pharmacies_ci_app_confirmed');
+    } catch (e) {
+      console.error(e);
+    }
+    if (onLogout) {
+      onLogout();
+    }
   };
 
   return (
@@ -156,31 +192,49 @@ export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose }) => {
             /* Login Gate for Admin */
             <div className="max-w-md mx-auto py-6 space-y-5 text-center">
               <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-50 border-2 border-emerald-200 text-emerald-700 shadow-sm">
-                <KeyRound className="h-7 w-7" />
+                <Lock className="h-7 w-7" />
               </div>
 
               <div>
                 <h3 className="text-lg font-black text-slate-900">
-                  Code de confirmation requis
+                  Code administrateur requis
                 </h3>
                 <p className="text-xs text-slate-600 mt-1 max-w-sm mx-auto">
-                  Veuillez entrer le <strong>code de confirmation officiel envoyé par Max adiko Clovis Garal</strong> pour ouvrir le panneau d'administration.
+                  Veuillez entrer le <strong>code administrateur officiel (Max adiko Clovis Garal)</strong> pour déverrouiller l'accès à la gestion des codes et aux journaux.
                 </p>
               </div>
 
+              {logoutMessage && (
+                <div className="p-3 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center justify-center gap-2 animate-in fade-in">
+                  <Lock className="h-4 w-4 text-amber-600 shrink-0" />
+                  <span className="font-semibold">{logoutMessage}</span>
+                </div>
+              )}
+
               <form onSubmit={handleAdminLogin} className="space-y-3 pt-2">
                 <div>
-                  <input
-                    type="text"
-                    value={adminCodeInput}
-                    onChange={(e) => setAdminCodeInput(e.target.value.toUpperCase())}
-                    placeholder="Ex: GARAL2026"
-                    autoFocus
-                    className="w-full text-center text-lg tracking-widest font-black uppercase rounded-2xl border-2 border-slate-300 px-4 py-3 text-slate-900 focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100 outline-hidden transition"
-                  />
+                  <div className="relative">
+                    <input
+                      type={showAdminCode ? 'text' : 'password'}
+                      value={adminCodeInput}
+                      onChange={(e) => setAdminCodeInput(e.target.value.toUpperCase())}
+                      placeholder="Entrez le code administrateur..."
+                      autoFocus
+                      className="w-full text-center text-lg tracking-widest font-black uppercase rounded-2xl border-2 border-slate-300 px-12 py-3 text-slate-900 focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100 outline-hidden transition"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowAdminCode(!showAdminCode)}
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-1 transition cursor-pointer"
+                      title={showAdminCode ? 'Masquer la saisie' : 'Afficher la saisie'}
+                    >
+                      {showAdminCode ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                    </button>
+                  </div>
+
                   {authError && (
-                    <p className="text-xs text-red-600 font-semibold mt-1.5 flex items-center justify-center gap-1">
-                      <AlertTriangle className="h-3.5 w-3.5" />
+                    <p className="text-xs text-red-600 font-semibold mt-2 flex items-center justify-center gap-1">
+                      <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
                       <span>{authError}</span>
                     </p>
                   )}
@@ -188,7 +242,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose }) => {
 
                 <button
                   type="submit"
-                  className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm shadow-md shadow-emerald-600/20 active:scale-98 transition"
+                  className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm shadow-md shadow-emerald-600/20 active:scale-98 transition cursor-pointer"
                 >
                   Déverrouiller l'administration
                 </button>
@@ -219,12 +273,6 @@ export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose }) => {
                       {PAYMENT_CONFIG.notificationEmail}
                     </a>
                   </div>
-                </div>
-
-                <div className="pt-2">
-                  <p className="text-[10px] text-slate-400 italic">
-                    Astuce de démonstration : les codes maîtres <strong>GARAL2026</strong> ou <strong>MAX225</strong> permettent l'accès immédiat.
-                  </p>
                 </div>
               </div>
             </div>
@@ -259,13 +307,13 @@ export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose }) => {
                     <ExternalLink className="h-3.5 w-3.5" />
                   </a>
                   <button
-                    onClick={() => {
-                      localStorage.removeItem('pharmacies_ci_app_confirmed');
-                      setIsAuthenticated(false);
-                    }}
-                    className="px-3 py-1.5 rounded-xl bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 font-bold text-xs transition"
+                    type="button"
+                    onClick={handleAdminLogout}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-xs transition cursor-pointer active:scale-95"
+                    title="Déconnexion immédiate et verrouillage du code administrateur"
                   >
-                    Déconnexion
+                    <Lock className="h-3.5 w-3.5" />
+                    <span>Déconnexion & Verrouiller Admin</span>
                   </button>
                 </div>
               </div>
@@ -372,9 +420,19 @@ export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose }) => {
                     <KeyRound className="h-4 w-4 text-slate-700" />
                     <span>Codes maîtres et reconnus par le système</span>
                   </h4>
-                  <span className="text-[11px] text-slate-500">
-                    {getAllValidConfirmationCodes().length} codes disponibles
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowSystemCodes(!showSystemCodes)}
+                      className="flex items-center gap-1 text-xs text-slate-700 hover:text-slate-900 font-bold px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 transition cursor-pointer"
+                    >
+                      {showSystemCodes ? <EyeOff className="h-3.5 w-3.5 text-slate-500" /> : <Eye className="h-3.5 w-3.5 text-slate-500" />}
+                      <span>{showSystemCodes ? 'Masquer' : 'Révéler'}</span>
+                    </button>
+                    <span className="text-[11px] text-slate-500">
+                      {getAllValidConfirmationCodes().length} codes
+                    </span>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -383,10 +441,12 @@ export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose }) => {
                       key={code}
                       className="p-2.5 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-between text-xs font-mono"
                     >
-                      <span className="font-bold text-slate-900">{code}</span>
+                      <span className="font-bold text-slate-900">
+                        {showSystemCodes ? code : '••••••••'}
+                      </span>
                       <button
                         onClick={() => handleCopy(code)}
-                        className="text-slate-400 hover:text-emerald-700 transition p-1"
+                        className="text-slate-400 hover:text-emerald-700 transition p-1 cursor-pointer"
                         title="Copier le code"
                       >
                         {copiedCode === code ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}

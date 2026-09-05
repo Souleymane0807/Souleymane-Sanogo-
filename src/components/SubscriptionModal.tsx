@@ -587,7 +587,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
                           setCodeDirectInput(e.target.value.toUpperCase());
                           setCodeDirectError('');
                         }}
-                        placeholder="Ex: GARAL2026"
+                        placeholder="Code secret reçu..."
                         className="flex-1 rounded-xl border border-slate-300 px-3 py-2 text-xs font-mono font-bold uppercase focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 outline-hidden bg-white"
                       />
                       <button
@@ -737,7 +737,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
                       setCodeDirectInput(e.target.value.toUpperCase());
                       setCodeDirectError('');
                     }}
-                    placeholder="Ex: GARAL2026"
+                    placeholder="Code secret reçu..."
                     className="flex-1 rounded-xl border border-slate-300 px-3 py-2 text-xs font-mono font-bold uppercase bg-white focus:border-emerald-600 outline-hidden"
                   />
                   <button

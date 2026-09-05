@@ -1,6 +1,7 @@
 import React from 'react';
 import { PhoneCall, Heart, MapPin, Sparkles, ShieldAlert, Download, UserCheck, Shield, KeyRound } from 'lucide-react';
 import { PWAInstallButton } from './PWAInstallButton';
+import { AppLogo } from './AppLogo';
 import { Coords } from '../hooks/useGeolocation';
 
 interface NavbarProps {
@@ -35,20 +36,9 @@ export const Navbar: React.FC<NavbarProps> = ({
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-xs">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 h-16 flex items-center justify-between gap-2">
-        {/* Left: App Identity */}
+        {/* Left: App Identity with User Logo */}
         <div className="flex items-center gap-2.5">
-          <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#1F7A4D] to-[#145A32] text-white shadow-md shadow-emerald-900/15">
-            {/* Medical Cross SVG */}
-            <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M19 10.5h-5.5V5c0-.55-.45-1-1-1h-1c-.55 0-1 .45-1 1v5.5H5c-.55 0-1 .45-1 1v1c0 .55.45 1 1 1h5.5V19c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-5.5H19c.55 0 1-.45 1-1v-1c0-.55-.45-1-1-1z" />
-            </svg>
-            {/* Small CI flag indicator */}
-            <div className="absolute -bottom-1 -right-1 flex h-3.5 w-5 overflow-hidden rounded-xs border border-white shadow-xs">
-              <span className="w-1/3 bg-[#FF8200]" />
-              <span className="w-1/3 bg-white" />
-              <span className="w-1/3 bg-[#009A44]" />
-            </div>
-          </div>
+          <AppLogo size="md" />
 
           <div>
             <div className="flex items-center gap-1.5">
@@ -56,7 +46,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 Pharmacies <span className="text-[#1F7A4D]">CI</span>
               </span>
               <span className="hidden sm:inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
-                Gardes 24/7
+                Santé • Proximité
               </span>
             </div>
             {/* Location selector toggle */}
@@ -74,47 +64,34 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
         </div>
 
-        {/* Right Actions: Installer pour s'inscrire, 118 Emergency, Subscription, Favorites */}
+        {/* Right Actions: Télécharger l'App, Choisir un Forfait, 118 Emergency, Admin, Favorites */}
         <div className="flex items-center gap-1.5 sm:gap-2">
-          {/* Main Requested CTA: Installer pour s'inscrire */}
+          {/* Main CTA: Télécharger l'application */}
           <button
-            id="nav-btn-install-register"
+            id="nav-btn-download-app"
             onClick={onOpenInstallRegister}
-            className={`flex items-center gap-1.5 rounded-xl px-2.5 sm:px-3 py-1.5 text-xs font-bold transition-all shadow-xs active:scale-95 ${
-              hasActiveSubscription
-                ? 'bg-emerald-50 border border-emerald-300 text-emerald-900 hover:bg-emerald-100'
-                : 'bg-gradient-to-r from-[#1F7A4D] to-[#145A32] text-white hover:brightness-105 shadow-emerald-900/20'
-            }`}
-            title="Installer l'application pour s'inscrire"
+            className="flex items-center gap-1.5 rounded-xl px-2.5 sm:px-3 py-1.5 text-xs font-bold transition-all shadow-xs active:scale-95 bg-gradient-to-r from-[#1F7A4D] to-[#145A32] text-white hover:brightness-105 shadow-emerald-900/20"
+            title="Télécharger et installer l'application sur votre écran d'accueil (Gratuit)"
           >
-            {hasActiveSubscription ? (
-              <>
-                <UserCheck className="h-3.5 w-3.5 text-emerald-700" />
-                <span>Mon Compte</span>
-              </>
-            ) : (
-              <>
-                <Download className="h-3.5 w-3.5 animate-pulse" />
-                <span className="hidden md:inline">Installer pour s'inscrire</span>
-                <span className="md:hidden">S'inscrire</span>
-              </>
-            )}
+            <Download className="h-3.5 w-3.5 animate-bounce" />
+            <span className="hidden sm:inline">Télécharger l'App</span>
+            <span className="sm:hidden">Télécharger</span>
           </button>
 
-          {/* VIP Features / Après Paiement Button */}
+          {/* Choisir un Forfait / VIP Features */}
           <button
-            id="nav-btn-vip-features"
-            onClick={onOpenVipFeatures}
-            className={`hidden sm:flex items-center gap-1.5 rounded-xl px-2.5 sm:px-3 py-1.5 text-xs font-bold transition-all shadow-xs ${
+            id="nav-btn-forfaits"
+            onClick={hasActiveSubscription || isConfirmed ? onOpenVipFeatures : onOpenSubscription}
+            className={`flex items-center gap-1.5 rounded-xl px-2.5 sm:px-3 py-1.5 text-xs font-bold transition-all shadow-xs ${
               hasActiveSubscription || isConfirmed
                 ? 'bg-emerald-100 text-emerald-950 border border-emerald-300 hover:bg-emerald-200'
                 : 'bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:brightness-105 active:scale-95 shadow-orange-500/20'
             }`}
-            title="Accéder aux fonctionnalités après paiement (Pass VIP, Alertes WhatsApp, Conciergerie)"
+            title="Choisir un forfait (Gratuit ou VIP 1 000 FCFA avec alertes WhatsApp)"
           >
-            <Sparkles className="h-3.5 w-3.5 fill-current text-amber-400" />
-            <span className="hidden lg:inline">{hasActiveSubscription || isConfirmed ? 'Services' : 'Fonctionnalités'}</span>
-            <span>{hasActiveSubscription || isConfirmed ? 'Pass VIP' : 'Après Paiement'}</span>
+            <Sparkles className="h-3.5 w-3.5 fill-current text-amber-200" />
+            <span className="hidden md:inline">{hasActiveSubscription || isConfirmed ? 'Mon Pass VIP' : 'Choisir un Forfait'}</span>
+            <span className="md:hidden">{hasActiveSubscription || isConfirmed ? 'Pass VIP' : 'Forfaits'}</span>
           </button>
 
           {/* URGENCES 118 Button - High Priority */}

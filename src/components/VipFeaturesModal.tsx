@@ -217,7 +217,7 @@ export const VipFeaturesModal: React.FC<VipFeaturesModalProps> = ({
                       setCodeInputValue(e.target.value.toUpperCase());
                       setCodeError('');
                     }}
-                    placeholder="Ex: GARAL2026"
+                    placeholder="Entrez votre code secret reçu..."
                     className="flex-1 rounded-xl border border-slate-300 px-3.5 py-2.5 text-xs sm:text-sm font-mono font-black uppercase text-slate-900 tracking-wider focus:border-emerald-600 focus:ring-2 focus:ring-emerald-200 outline-hidden"
                   />
                   <button

@@ -77,8 +77,13 @@ export const PharmacyModal: React.FC<PharmacyModalProps> = ({
               <h2 className="text-xl sm:text-2xl font-black text-slate-900">
                 {pharmacy.name}
               </h2>
-              <p className="text-sm text-slate-500 mt-0.5">
-                {pharmacy.city} • {pharmacy.commune} ({pharmacy.neighborhood})
+              <p className="text-sm text-slate-500 mt-0.5 flex items-center gap-1.5 flex-wrap">
+                {pharmacy.region && (
+                  <span className="inline-block bg-emerald-50 text-[#1F7A4D] font-bold px-2 py-0.5 rounded-md text-xs border border-emerald-200">
+                    Région {pharmacy.region}
+                  </span>
+                )}
+                <span>{pharmacy.city} • {pharmacy.commune} ({pharmacy.neighborhood})</span>
               </p>
             </div>
 
